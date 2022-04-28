@@ -1,0 +1,41 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/run/media/vm/data/projects/FoViBalT/led_id_chip/include",
+                "/run/media/vm/data/projects/FoViBalT/led_id_chip/src",
+                "/home/vm/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/run/media/vm/data/projects/FoViBalT/led_id_chip/include",
+                    "/run/media/vm/data/projects/FoViBalT/led_id_chip/src",
+                    "/home/vm/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "F_CPU=1000000L",
+                "PLATFORMIO=50205",
+                "__AVR_ATtiny10__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/home/vm/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=attiny10",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

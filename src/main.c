@@ -1,6 +1,5 @@
 #include "main.h"
 
-#include <avr/io.h>
 #include <avr/interrupt.h>
 
 #include <util/delay.h>
@@ -30,18 +29,24 @@ ISR(PCINT0_vect)
 {
   if (state == 0)
   {
-    // some signal start
-    startTimer();
-    state = 1;
+    // start timer only on high signal
+    if (PINB & (1 << IN_PIN))
+    {
+      startTimer();
+      state = 1;
+      blink();
+    }
   }
   else if (state == 1)
   {
     // some signal end
     stopTimer();
     uint16_t time = readTimer();
+
     // is signal 0 or 1
     if (aboutSame(time, T1H, JITER))
     {
+      blink();
       set1ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
     }
@@ -50,6 +55,12 @@ ISR(PCINT0_vect)
       set0ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
     }
+    else if (aboutSame(time, ENDH, JITER))
+    {
+      // end of message
+      receiveBufferPointer = 0;
+    }
+
     // reset  receiveBufferPointer if overflow
     if (receiveBufferPointer == 24)
     {
@@ -62,13 +73,12 @@ ISR(PCINT0_vect)
 int main()
 {
   // setup interrupt
-  PCMSK = 1; // trigger interrupt on PB0 pin change
-  PCICR = 1; // enable PCINT0 interrupt
-  sei();     // enable interrupt
+  PCMSK = (1 << IN_PIN); // trigger interrupt on PB0 pin change
+  PCICR = (1 << PCIE0);  // enable PCINT0 interrupt
+  sei();                 // enable interrupt
 
-  // basic setup
-  DDRB |= (1 << DDB1); // Make pin 1 be an output.
-  // setup 16bit timer
+  // debug setup
+  DDRB |= (1 << DEBUG_PIN); // Make DEBUG_PIN be an output.
 
   while (1)
   {
@@ -118,8 +128,8 @@ void set0ToReceiveBuff(uint8_t i)
 
 void blink()
 {
-  PORTB |= (1 << PORTB1); // Turn the LED on.
+  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
   _delay_ms(100);
-  PORTB &= ~(1 << PORTB1); // Turn the LED off.
+  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
   _delay_ms(100);
 }
