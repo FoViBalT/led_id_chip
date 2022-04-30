@@ -6,7 +6,11 @@
 
 #include <stdlib.h>
 
-void blink();
+void blink0();
+void blink1();
+void blink2();
+void blink3();
+void debugNum(uint16_t num);
 
 void startTimer();
 void stopTimer();
@@ -34,7 +38,7 @@ ISR(PCINT0_vect)
     {
       startTimer();
       state = 1;
-      blink();
+      blink0();
     }
   }
   else if (state == 1)
@@ -42,21 +46,26 @@ ISR(PCINT0_vect)
     // some signal end
     stopTimer();
     uint16_t time = readTimer();
-
+    blink0();
+    //  debugNum(time);
     // is signal 0 or 1
     if (aboutSame(time, T1H, JITER))
     {
-      blink();
+      blink1();
       set1ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
     }
     else if (aboutSame(time, T0H, JITER))
     {
+      blink2();
       set0ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
     }
     else if (aboutSame(time, ENDH, JITER))
     {
+      // blink1();
+      // blink2();
+      blink3();
       // end of message
       receiveBufferPointer = 0;
     }
@@ -126,10 +135,32 @@ void set0ToReceiveBuff(uint8_t i)
   receiveBuffer[n] &= ~(1 << i); // set 0
 }
 
-void blink()
+inline void blink0()
+{
+  PORTB |= (1 << DEBUG_PIN);  // Turn the LED on.
+  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
+}
+
+inline void blink1()
 {
   PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
-  _delay_ms(100);
+  _delay_us(10);
   PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
-  _delay_ms(100);
+  //_delay_us(10);
+}
+
+inline void blink2()
+{
+  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
+  _delay_us(20);
+  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
+  //_delay_us(10);
+}
+
+inline void blink3()
+{
+  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
+  _delay_us(30);
+  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
+  //_delay_us(10);
 }
