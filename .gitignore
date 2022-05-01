@@ -49,3 +49,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+.pio/build/attiny10/firmave.asm
+.pio/build/attiny10/.sconsign310.dblite
