@@ -10,7 +10,8 @@ void blink0();
 void blink1();
 void blink2();
 void blink3();
-void debugNum(uint16_t num);
+
+void blink4();
 
 void startTimer();
 void stopTimer();
@@ -20,9 +21,13 @@ uint8_t aboutSame(uint16_t a, uint16_t b, uint8_t delta);
 
 void set1ToReceiveBuff(uint8_t i);
 void set0ToReceiveBuff(uint8_t i);
+
+void send1ToMaster();
+void send0ToMaster();
 /*
 state == 0; start of pulse
 state == 1; end of pulse
+state == 3; packet received
 */
 uint8_t state;
 
@@ -51,23 +56,24 @@ ISR(PCINT0_vect)
     // is signal 0 or 1
     if (aboutSame(time, T1H, JITER))
     {
-      blink1();
+     // blink1();
       set1ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
+      state = 0;
     }
     else if (aboutSame(time, T0H, JITER))
     {
-      blink2();
+     // blink2();
       set0ToReceiveBuff(receiveBufferPointer);
       receiveBufferPointer++;
+      state = 0;
     }
     else if (aboutSame(time, ENDH, JITER))
     {
-      // blink1();
-      // blink2();
       blink3();
       // end of message
       receiveBufferPointer = 0;
+      state = 3; // answer to question
     }
 
     // reset  receiveBufferPointer if overflow
@@ -75,7 +81,6 @@ ISR(PCINT0_vect)
     {
       receiveBufferPointer = 0;
     }
-    state = 0;
   }
 }
 
@@ -87,10 +92,33 @@ int main()
   sei();                 // enable interrupt
 
   // debug setup
-  DDRB |= (1 << DEBUG_PIN); // Make DEBUG_PIN be an output.
+  DDRB |= (1 << DEBUG_PIN1); // Make DEBUG_PIN be an output.
+  DDRB |= (1 << DEBUG_PIN2); // Make DEBUG_PIN be an output.
 
   while (1)
   {
+    blink4();
+    if (state == 3)
+    {
+      _delay_us(300);
+      DDRB |= (1 << IN_PIN); // make pin output
+      for (uint8_t i = 0; i < 3; i++)
+      {
+        for (uint8_t j = 0; j < 8; j++)
+        {
+          if (receiveBuffer[i] & (1 << j))
+          {
+            send1ToMaster();
+          }
+          else
+          {
+            send0ToMaster();
+          }
+        }
+      }
+      DDRB &= ~(1 << IN_PIN); // make pin input
+      state = 0;
+    }
   }
 }
 
@@ -123,44 +151,64 @@ uint8_t aboutSame(uint16_t a, uint16_t b, uint8_t delta)
 
 void set1ToReceiveBuff(uint8_t i)
 {
-  uint8_t n = i % 8;
-  i /= 8;
+  uint8_t n = i / 8;
+  i %= 8;
   receiveBuffer[n] |= (1 << i); // set 1
 }
 
 void set0ToReceiveBuff(uint8_t i)
 {
-  uint8_t n = i % 8;
-  i /= 8;
+  uint8_t n = i / 8;
+  i %= 8;
   receiveBuffer[n] &= ~(1 << i); // set 0
 }
 
+void send1ToMaster()
+{
+
+  PORTB |= (1 << IN_PIN);
+  _delay_us(T1H - 75);
+  PORTB &= ~(1 << IN_PIN);
+  _delay_us(T1L - 90);
+}
+
+void send0ToMaster()
+{
+  PORTB |= (1 << IN_PIN);
+  _delay_us(T0H - 75); 
+  PORTB &= ~(1 << IN_PIN);
+  _delay_us(T0L - 90);
+}
+
+// debug
 inline void blink0()
 {
-  PORTB |= (1 << DEBUG_PIN);  // Turn the LED on.
-  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
+  PORTB |= (1 << DEBUG_PIN1);  // Turn the LED on.
+  PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
 
 inline void blink1()
 {
-  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
+  PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
   _delay_us(10);
-  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
-  //_delay_us(10);
+  PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
 
 inline void blink2()
 {
-  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
+  PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
   _delay_us(20);
-  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
-  //_delay_us(10);
+  PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
 
 inline void blink3()
 {
-  PORTB |= (1 << DEBUG_PIN); // Turn the LED on.
+  PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
   _delay_us(30);
-  PORTB &= ~(1 << DEBUG_PIN); // Turn the LED off.
-  //_delay_us(10);
+  PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+}
+inline void blink4()
+{
+  PORTB |= (1 << DEBUG_PIN2);  // Turn the LED on.
+  PORTB &= ~(1 << DEBUG_PIN2); // Turn the LED off.
 }
