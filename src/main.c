@@ -6,12 +6,14 @@
 
 #include <stdlib.h>
 
-void blink0();
 void blink1();
 void blink2();
 void blink3();
-
 void blink4();
+
+void blink21();
+void blink111();
+void blink11();
 
 void startTimer();
 void stopTimer();
@@ -49,24 +51,28 @@ uint8_t selectedPin = 0;
 
 ISR(PCINT0_vect)
 {
+	// blink1();
+
 	if (state == 0)
 	{
+		// blink1();
+
 		// start timer only on high signal
 		if (PINB & (1 << selectedPin))
 		{
 			startTimer();
+			//blink1();
 			state = 1;
-			blink0();
 		}
 	}
 	else if (state == 1)
 	{
 		// some signal end
 		stopTimer();
+		//blink1();
 		uint16_t time = readTimer();
-		blink0();
-		//  debugNum(time);
-		// is signal 0 or 1
+		//   debugNum(time);
+		//  is signal 0 or 1
 		if (aboutSame(time, T1H, JITER))
 		{
 			// blink1();
@@ -83,10 +89,14 @@ ISR(PCINT0_vect)
 		}
 		else if (aboutSame(time, ENDH, JITER))
 		{
-			blink3();
-			// end of message
+			// blink4();
+			//  end of message
 			receiveBufferPointer = 0;
 			state = 3; // answer to question
+		}
+		else
+		{
+			state = 0;
 		}
 
 		// reset  receiveBufferPointer if overflow
@@ -102,13 +112,14 @@ int main()
 	// setup interrupt
 	PCMSK = (1 << IN_PIN); // trigger interrupt on PB0 pin change
 	selectedPin = IN_PIN;
-	PCICR = (1 << PCIE0);  // enable PCINT0 interrupt
-	sei();				   // enable interrupt
+	PCICR = (1 << PCIE0); // enable PCINT0 interrupt
+	sei();				  // enable interrupt
 
 	// debug setup
 	DDRB |= (1 << DEBUG_PIN1); // Make DEBUG_PIN be an output.
 	DDRB |= (1 << DEBUG_PIN2); // Make DEBUG_PIN be an output.
 	DDRB &= ~(1 << IN_PIN);	   // Make IN_PIN be an input.
+start:
 
 	while (1)
 	{
@@ -118,11 +129,12 @@ int main()
 		// if packet is fully received
 		if (state == 3)
 		{
+
 			//  check packet data
 			if (receiveBuffer[0] == REQUEST)
 			{
 				PCICR = 0; // disable PCINT
-				_delay_us(150);
+				_delay_us(200);
 				PCMSK = (1 << OUT_PIN); // trigger interrupt on OUT_PIN pin change
 				selectedPin = OUT_PIN;
 				// clear receive buffer
@@ -142,27 +154,34 @@ int main()
 				send0ToSlave();
 				sendEndToSlave();
 				DDRB &= ~(1 << OUT_PIN); // slave pin as input
-
-				PCICR = (1 << PCIE0);	// enable PCINT back
-				PCMSK = (1 << OUT_PIN); // trigger interrupt on OUT_PIN pin change
-				selectedPin = OUT_PIN;
 				// wait until data is received
-				state = 0;
+				state = 100;			// disable
+				PCMSK = (1 << OUT_PIN); // trigger interrupt on OUT_PIN pin change
+				PCICR = (1 << PCIE0);	// enable PCINT back
+				selectedPin = OUT_PIN;
+				state = 0; // enable
 				// setup watchdog timer
-				_delay_us(1000);
-				uint32_t watchdogTimer = 0;
+				uint8_t watchdogTimer = 0;
+				//blink11();
 				while (state != 1) // some data is available
 				{
-					if (watchdogTimer == 0xFFFFFFFF)
+					_delay_us(1);
+					if (watchdogTimer == 0xFF)
 					{
 						state = 3;
 						break;
 					}
 					watchdogTimer++;
 				}
+				//blink111();
 				// wait for data end
+				receiveBufferPointer = 0;
 				while (state != 3)
-					;
+				{
+					_delay_us(1);
+				}
+				//blink11();
+				// sendReceiveBuferBack();
 
 				// parse received packet
 				uint16_t ledLenght = 0;
@@ -170,6 +189,7 @@ int main()
 				if (receiveBuffer[0] == WS2812B_5V ||
 					receiveBuffer[0] == SK6812_5V)
 				{
+					blink11();
 					ledLenght = receiveBuffer[1] << 8 | receiveBuffer[2];
 				}
 
@@ -182,9 +202,11 @@ int main()
 
 				PCICR = 0;
 				sendBuferToMaster(data);
-				PCICR = (1 << PCIE0);
+
 				PCMSK = (1 << IN_PIN); // trigger interrupt on IN_PIN pin change
 				selectedPin = IN_PIN;
+				state = 0;
+				PCICR = (1 << PCIE0);
 			}
 			else if (receiveBuffer[0] == ACK)
 			{
@@ -192,18 +214,16 @@ int main()
 				sendACKToMaster();
 				PCICR = (1 << PCIE0);
 			}
-			//...
-			//  sendReceiveBuferBack();
 			state = 0;
 		}
 	}
+	goto start;
 }
-/*
+
 void sendReceiveBuferBack()
 {
-sendBuferToMaster(receiveBuffer);
+	sendBuferToMaster(receiveBuffer);
 }
-*/
 
 void sendBuferToMaster(uint8_t buf[3])
 {
@@ -341,47 +361,58 @@ void sendEndToSlave()
 }
 
 // ===debug===
-void blink0()
+inline void blink1()
 {
-	DDRB |= (1 << DEBUG_PIN1);	 // Make DEBUG_PIN be an output.
 	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
-	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
-}
-
-void blink1()
-{
-	DDRB |= (1 << DEBUG_PIN1);	// Make DEBUG_PIN be an output.
-	PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
-	_delay_us(10);
 	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
 
 void blink2()
 {
-	DDRB |= (1 << DEBUG_PIN1);	// Make DEBUG_PIN be an output.
 	PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
-	_delay_us(20);
+	_delay_us(1);
 	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
 
 void blink3()
 {
-	DDRB |= (1 << DEBUG_PIN1);	// Make DEBUG_PIN be an output.
 	PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
-	_delay_us(30);
+	_delay_us(2);
 	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }
+
 void blink4()
 {
-	DDRB |= (1 << DEBUG_PIN2);	 // Make DEBUG_PIN be an output.
+	PORTB |= (1 << DEBUG_PIN1); // Turn the LED on.
+	_delay_us(3);
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+}
+void blink21()
+{
 	PORTB |= (1 << DEBUG_PIN2);	 // Turn the LED on.
 	PORTB &= ~(1 << DEBUG_PIN2); // Turn the LED off.
 }
 
-void blink5()
+void blink231()
 {
 	DDRB |= (1 << DEBUG_PIN2);	// Make DEBUG_PIN be an output.
 	PORTB |= (1 << DEBUG_PIN2); // Turn the LED on.
 	_delay_us(30);
 	PORTB &= ~(1 << DEBUG_PIN2); // Turn the LED off.
+}
+void blink11()
+{
+	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+}
+void blink111()
+{
+	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
+	PORTB |= (1 << DEBUG_PIN1);	 // Turn the LED on.
+	PORTB &= ~(1 << DEBUG_PIN1); // Turn the LED off.
 }

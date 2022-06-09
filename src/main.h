@@ -37,14 +37,14 @@ extern "C" {
 #define F_CPU 1000000UL
 
 // ===protocol time values===
-#define T1H 150
+#define T1H 140
 #define T1L 150
-#define T0H 200
+#define T0H 190
 #define T0L 150
-#define ENDH 300
+#define ENDH 290
 #define ENDL 300
 #define JITER 20 // allowed timing deviation
-#define TCORR 6  // timing correction
+#define TCORR 0  // timing correction
 /*
        T1H  T1L T0H  T0L
        ____      __
