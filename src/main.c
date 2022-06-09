@@ -45,13 +45,14 @@ uint8_t state;
 
 uint8_t receiveBuffer[3];
 uint8_t receiveBufferPointer = 0;
+uint8_t selectedPin = 0;
 
 ISR(PCINT0_vect)
 {
 	if (state == 0)
 	{
 		// start timer only on high signal
-		if (PINB & (1 << IN_PIN))
+		if (PINB & (1 << selectedPin))
 		{
 			startTimer();
 			state = 1;
@@ -100,6 +101,7 @@ int main()
 {
 	// setup interrupt
 	PCMSK = (1 << IN_PIN); // trigger interrupt on PB0 pin change
+	selectedPin = IN_PIN;
 	PCICR = (1 << PCIE0);  // enable PCINT0 interrupt
 	sei();				   // enable interrupt
 
@@ -122,6 +124,7 @@ int main()
 				PCICR = 0; // disable PCINT
 				_delay_us(150);
 				PCMSK = (1 << OUT_PIN); // trigger interrupt on OUT_PIN pin change
+				selectedPin = OUT_PIN;
 				// clear receive buffer
 				receiveBuffer[0] = 0;
 				receiveBuffer[1] = 0;
@@ -142,6 +145,7 @@ int main()
 
 				PCICR = (1 << PCIE0);	// enable PCINT back
 				PCMSK = (1 << OUT_PIN); // trigger interrupt on OUT_PIN pin change
+				selectedPin = OUT_PIN;
 				// wait until data is received
 				state = 0;
 				// setup watchdog timer
@@ -180,6 +184,7 @@ int main()
 				sendBuferToMaster(data);
 				PCICR = (1 << PCIE0);
 				PCMSK = (1 << IN_PIN); // trigger interrupt on IN_PIN pin change
+				selectedPin = IN_PIN;
 			}
 			else if (receiveBuffer[0] == ACK)
 			{
