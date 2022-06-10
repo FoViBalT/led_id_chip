@@ -89,7 +89,7 @@ ISR(PCINT0_vect)
 		}
 		else if (aboutSame(time, ENDH, JITER))
 		{
-			// blink4();
+			//blink11();
 			//  end of message
 			receiveBufferPointer = 0;
 			state = 3; // answer to question
@@ -119,7 +119,7 @@ int main()
 	DDRB |= (1 << DEBUG_PIN1); // Make DEBUG_PIN be an output.
 	DDRB |= (1 << DEBUG_PIN2); // Make DEBUG_PIN be an output.
 	DDRB &= ~(1 << IN_PIN);	   // Make IN_PIN be an input.
-start:
+//start:
 
 	while (1)
 	{
@@ -189,7 +189,6 @@ start:
 				if (receiveBuffer[0] == WS2812B_5V ||
 					receiveBuffer[0] == SK6812_5V)
 				{
-					blink11();
 					ledLenght = receiveBuffer[1] << 8 | receiveBuffer[2];
 				}
 
@@ -202,11 +201,16 @@ start:
 
 				PCICR = 0;
 				sendBuferToMaster(data);
-
+				//clear receive buffer
+				receiveBuffer[0] = 0;
+				receiveBuffer[1] = 0;
+				receiveBuffer[2] = 0;
+				receiveBufferPointer = 0;
+				//blink11();
 				PCMSK = (1 << IN_PIN); // trigger interrupt on IN_PIN pin change
-				selectedPin = IN_PIN;
-				state = 0;
 				PCICR = (1 << PCIE0);
+				selectedPin = IN_PIN;
+				//blink11();
 			}
 			else if (receiveBuffer[0] == ACK)
 			{
@@ -215,9 +219,11 @@ start:
 				PCICR = (1 << PCIE0);
 			}
 			state = 0;
+			//blink111();
 		}
+		//blink11();
 	}
-	goto start;
+//	goto start;
 }
 
 void sendReceiveBuferBack()
